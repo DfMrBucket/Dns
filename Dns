@@ -1,0 +1,451 @@
+getgenv().futile = {
+    aiming = {
+      camera_aimassist = {
+            enabled = true,
+            keybind = "q",
+            prediction = 0.1433431,
+            aimassist = true,
+            smoothness = 1,
+            shaking = false,
+            shake_offset = 1,
+            shake_replicator = 1,-->Useless Keep At 1 Or 0.1
+            easingstyle = "Linear",--> Linear,Elastic,Exponential,Sine,Quint, etc
+            easingdirection = "InOut",--> In,Out,InOut
+            hitpart = "HumanoidRootPart",
+            nearest_hitpart = false,
+            use_fov = false,
+            range = 1000,
+            locking_on_notifications = true
+        },
+      bullet_redirection = {
+            enabled = true,
+            prediction = 0.141,--> -0.142 a fye set
+            hitpart = "HumanoidRootPart",
+            nearest_hitpart = true,
+            use_disable_toggle = true,
+            disable_keybind = "p",--> make sure silent enabled before changing before doing sum or will not disable
+            disable_notifications = true
+        },
+    },
+    fov = {
+      camera_aimassist = {
+            visible = false,
+            radius = 10,
+            radius_multiplier = 1,
+            filled = true,
+            transparency = 0.1,
+            thickness = 1,
+            sides = 20,
+            color = Color3.fromRGB(1, 35, 255),
+            move_position = "Cursor"--> Cursor/Center
+        },
+      bullet_redirection = {
+            visible = false,
+            radius = 40,
+            radius_multiplier = 1,
+            filled = true,
+            transparency = 0.08,
+            thickness = 1,
+            sides = 20,
+            color = Color3.fromRGB(1, 35, 255),
+            move_position = "Cursor"--> Cursor/Center
+        },
+    },
+    misc = {
+      autopred = {
+            enabled = false,
+            type = "Camera",--> Camera/Bullet
+            ping_120 = 0.17,
+            ping_110 = 0.164,
+            ping_100 = 0.16,
+            ping_90 = 0.154,
+            ping_80 = 0.151,
+            ping_70 = 0.147,
+            ping_60 = 0.14,
+            ping_50 = 0.135,
+            ping_40 = 0.13
+        },
+      checks = {
+            no_ground_shots = false,
+            unlocked_on_death = false
+        },
+      resolver = {
+            enabled = false,
+            anti_aim_viewer = false
+        },
+    },
+}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Client = LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local GetPlayers = Players.GetPlayers
+local Mouse = LocalPlayer:GetMouse()
+local RS = game:GetService("RunService")
+local Camera = game.Workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local GetPlayers = Players.GetPlayers
+local Mouse = LocalPlayer:GetMouse()
+local Workspace = game:GetService("Workspace")
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+local CurrentCamera = Workspace.CurrentCamera
+local GetGuiInset = GuiService.GetGuiInset
+local Circle1 = Drawing.new("Circle")
+local Circle2 = Drawing.new("Circle")
+local Plr 
+local Plr2
+
+function CameraFOV()
+    if not (Circle1) then
+        return
+    end
+    Circle1.Visible = getgenv().futile.fov.camera_aimassist.visible
+    Circle1.Radius =  getgenv().futile.fov.camera_aimassist.radius * getgenv().futile.fov.camera_aimassist.radius_multiplier
+    if getgenv().futile.fov.camera_aimassist.move_position == "Cursor" then
+    Circle1.Position = Vector2.new(Mouse.X, Mouse.Y + GetGuiInset(GuiService).Y)
+    elseif getgenv().futile.fov.camera_aimassist.move_position == "Center" then
+    local x = math.floor(workspace.CurrentCamera.ViewportSize.X * 0.5)
+    local y = math.floor(workspace.CurrentCamera.ViewportSize.Y * 0.5)
+    Circle1.Position = Vector2.new(x,y)
+    end
+    Circle1.Filled = getgenv().futile.fov.camera_aimassist.filled
+    Circle1.Transparency = getgenv().futile.fov.camera_aimassist.transparency
+    Circle1.Thickness = getgenv().futile.fov.camera_aimassist.thickness
+    Circle1.NumSides = getgenv().futile.fov.camera_aimassist.sides
+    Circle1.Color = getgenv().futile.fov.camera_aimassist.color
+    return Circle1
+end
+
+function BulletFOV()
+    if not (Circle2) then
+        return
+    end
+    Circle2.Visible = getgenv().futile.fov.bullet_redirection.visible
+    Circle2.Radius =  getgenv().futile.fov.bullet_redirection.radius * getgenv().futile.fov.bullet_redirection.radius_multiplier
+    if getgenv().futile.fov.bullet_redirection.move_position == "Cursor" then
+    Circle2.Position = Vector2.new(Mouse.X, Mouse.Y + GetGuiInset(GuiService).Y)
+    elseif getgenv().futile.fov.bullet_redirection.move_position == "Center" then
+    local x = math.floor(workspace.CurrentCamera.ViewportSize.X * 0.5)
+    local y = math.floor(workspace.CurrentCamera.ViewportSize.Y * 0.5)
+    Circle2.Position = Vector2.new(x,y)
+    end
+    Circle2.Filled = getgenv().futile.fov.bullet_redirection.filled
+    Circle2.Transparency = getgenv().futile.fov.bullet_redirection.transparency
+    Circle2.Thickness = getgenv().futile.fov.bullet_redirection.thickness
+    Circle2.NumSides = getgenv().futile.fov.bullet_redirection.sides
+    Circle2.Color = getgenv().futile.fov.bullet_redirection.color
+    return Circle2
+end
+
+local WTS = function (Object)
+    local ObjectVector = Camera:WorldToScreenPoint(Object.Position)
+    return Vector2.new(ObjectVector.X, ObjectVector.Y)
+end
+
+local IsOnScreen = function (Object)
+    local IsOnScreen = Camera:WorldToScreenPoint(Object.Position)
+    return IsOnScreen
+end
+
+local FilterObjs = function (Object)
+    if string.find(Object.Name, "Gun") then
+        return
+    end
+    if table.find({"Part", "MeshPart", "BasePart"}, Object.ClassName) then
+        return true
+    end
+end
+
+local MousePosVector2 = (function()
+	return Vector2.new(Mouse.X, Mouse.Y) 
+end)
+
+if getgenv().futile.aiming.camera_aimassist.use_fov == true then
+    function NearestPerson()
+        local closestPlayer
+        local shortestDistance = getgenv().futile.fov.camera_aimassist.radius
+        for i, v in pairs(game.Players:GetPlayers()) do
+            pcall(function()
+    
+                if v ~= game.Players.LocalPlayer and v.Character and
+                    v.Character:FindFirstChild("Humanoid") then
+                    local pos = CurrentCamera:WorldToViewportPoint(v.Character.PrimaryPart.Position)
+                    local magnitude =
+                    (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).magnitude
+                    if (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).magnitude < shortestDistance then
+                        closestPlayer = v
+                        shortestDistance = magnitude
+                    end
+                end
+            end)
+        end
+    return closestPlayer
+  end
+    elseif getgenv().futile.aiming.camera_aimassist.use_fov == false then
+        function NearestPerson()
+            local closestPlayer
+            local shortestDistance = getgenv().futile.aiming.camera_aimassist.range
+            for i, v in pairs(game.Players:GetPlayers()) do
+                pcall(function()
+        
+                    if v ~= game.Players.LocalPlayer and v.Character and
+                        v.Character:FindFirstChild("Humanoid") then
+                        local pos = CurrentCamera:WorldToViewportPoint(v.Character.PrimaryPart.Position)
+                        local magnitude =
+                        (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).magnitude
+                        if (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).magnitude < shortestDistance then
+                            closestPlayer = v
+                            shortestDistance = magnitude
+                        end
+                    end
+                end)
+            end
+        return closestPlayer
+    end
+end
+
+local NearestPlayerFromFOV = function()
+    local Target, Closest = nil, 1/0
+ 
+    for _ ,v in pairs(Players:GetPlayers()) do
+        if (v.Character and v ~= Client and v.Character:FindFirstChild("HumanoidRootPart")) then
+            local Position, OnScreen = Camera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+            local Distance = (Vector2.new(Position.X, Position.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+            local NotKO = v.Character:WaitForChild("BodyEffects")["K.O"].Value ~= true;
+            local NotGrabbed = v.Character:FindFirstChild("GRABBING_COINSTRAINT") == nil
+
+            if (Circle2.Radius > Distance and Distance < Closest and OnScreen and NotKO and NotGrabbed ) then
+                Closest = Distance
+                Target = v
+            end
+    end
+    end
+    
+    return Target
+end
+
+local ClosestBodyPart = (function()
+	local shortestDistance = math.huge
+	local bodyPart = nil
+	for _, v in next, game.Players:GetPlayers() do
+		if (v ~= Client and v.Character and v.Character:FindFirstChild("Humanoid")) then
+			for k, x in next, v.Character:GetChildren() do
+				if (FilterObjs(x)) then
+					local Distance = (WTS(x) - MousePosVector2()).magnitude
+					if (Distance < shortestDistance) then
+						shortestDistance = Distance
+						bodyPart = x
+					end
+				end
+			end
+		end
+	end
+	return bodyPart
+end)
+
+spawn(function()
+    while wait() do
+        if Plr2 ~= nil then
+            if getgenv().futile.aiming.bullet_redirection.nearest_hitpart then 
+                getgenv().futile.aiming.bullet_redirection["hitpart"] = tostring(ClosestBodyPart()) 
+            end
+            if Plr ~= nil then
+                if getgenv().futile.aiming.camera_aimassist.nearest_hitpart then 
+                    getgenv().futile.aiming.camera_aimassist["hitpart"] = tostring(ClosestBodyPart()) 
+                end
+            end
+        end
+    end
+end)
+
+Mouse.KeyDown:Connect(function(Key)
+    local Keybind = getgenv().futile.aiming.camera_aimassist.keybind:lower()
+    if (Key == Keybind) then
+        if getgenv().futile.aiming.camera_aimassist.enabled == true then
+            IsTargetting = not IsTargetting
+            if IsTargetting then
+                Plr = NearestPerson()
+                if getgenv().futile.aiming.camera_aimassist.locking_on_notifications == true then
+                    game.StarterGui:SetCore("SendNotification", {
+                        Title = "futileW",
+                        Duration = 0.5,
+                        Text = "locking on : " .. tostring(Plr.Character.Humanoid.DisplayName)
+                    })
+                end 
+            else
+                if Plr ~= nil then
+                    Plr = nil
+                end
+            end
+       end
+    end
+end)
+
+Mouse.KeyDown:Connect(
+  function(Key)
+    if getgenv().futile.aiming.bullet_redirection.use_disable_toggle then
+    if (Key == getgenv().futile.aiming.bullet_redirection.disable_keybind:lower()) then
+        if getgenv().futile.aiming.bullet_redirection.enabled == true then
+            getgenv().futile.aiming.bullet_redirection.enabled = false
+            if getgenv().futile.aiming.bullet_redirection.disable_notifications == true then
+                game.StarterGui:SetCore("SendNotification", {
+                    Title = "futileW",
+                    Duration = 0.5,
+                    Text = "off"
+                })
+            end   
+        else
+            getgenv().futile.aiming.bullet_redirection.enabled = true
+            if getgenv().futile.aiming.bullet_redirection.disable_notifications == true then
+                game.StarterGui:SetCore("SendNotification", {
+                    Title = "futileW",
+                    Duration = 0.5,
+                    Text = "on"
+                })
+            end   
+        end
+    end
+  end
+end
+)
+
+local grmt = getrawmetatable(game)
+local backupindex = grmt.__index
+setreadonly(grmt, false)
+grmt.__index = newcclosure(function(self, v)
+    if ( getgenv().futile.aiming.bullet_redirection.enabled and Mouse and tostring(v) == "Hit") then
+        Plr2 = NearestPlayerFromFOV() 
+        if Plr2 then
+            local endpoint = game.Players[tostring(Plr2)].Character[ getgenv().futile.aiming.bullet_redirection["hitpart"]].CFrame + (
+                game.Players[tostring(Plr2)].Character[ getgenv().futile.aiming.bullet_redirection["hitpart"]].Velocity *  getgenv().futile.aiming.bullet_redirection.prediction
+            )
+            return (tostring(v) == "Hit"  and endpoint)
+        end
+    end
+    return backupindex(self, v)
+end)
+
+RS.Heartbeat:Connect(function()
+    if getgenv().futile.aiming.camera_aimassist.enabled == true and Plr and Plr.Character ~= nil then
+        if getgenv().futile.aiming.camera_aimassist.shaking then
+            local Main = CFrame.new(Camera.CFrame.p,Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Position + Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Velocity*getgenv().futile.aiming.camera_aimassist.prediction +
+            Vector3.new(
+                math.random(-getgenv().futile.aiming.camera_aimassist.shake_offset,getgenv().futile.aiming.camera_aimassist.shake_offset),
+                math.random(-getgenv().futile.aiming.camera_aimassist.shake_offset,getgenv().futile.aiming.camera_aimassist.shake_offset),
+                math.random(-getgenv().futile.aiming.camera_aimassist.shake_offset,getgenv().futile.aiming.camera_aimassist.shake_offset)
+            )*getgenv().futile.aiming.camera_aimassist.shake_replicator)
+            Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().futile.aiming.camera_aimassist.smoothness, Enum.EasingStyle[getgenv().futile.aiming.camera_aimassist.easingstyle],Enum.EasingDirection[getgenv().futile.aiming.camera_aimassist.easingdirection])
+        else
+            local Main = CFrame.new(Camera.CFrame.p,Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Position + Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Velocity*getgenv().futile.aiming.camera_aimassist.prediction)
+            Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().futile.aiming.camera_aimassist.smoothness, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+        end
+    end
+end)
+
+RS.RenderStepped:Connect(function()
+    if getgenv().futile.aiming.camera_aimassist.aimassist and getgenv().futile.aiming.camera_aimassist.enabled  == true then
+        local Main = CFrame.new(workspace.CurrentCamera.CFrame.p, Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Position + Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Velocity*getgenv().futile.aiming.camera_aimassist.prediction)
+                                     workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(Main,getgenv().futile.aiming.camera_aimassist.smoothness,Enum.EasingStyle[getgenv().futile.aiming.camera_aimassist.easingstyle],Enum.EasingDirection[getgenv().futile.aiming.camera_aimassist.easingdirection])
+    elseif getgenv().futile.aiming.camera_aimassist.aimassist == false and getgenv().futile.aiming.camera_aimassist.enabled == true then
+        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Position + Plr.Character[getgenv().futile.aiming.camera_aimassist.hitpart].Velocity*getgenv().futile.aiming.camera_aimassist.prediction)
+                                end
+end)
+
+RS.Heartbeat:Connect(function()
+if  getgenv().futile.misc.resolver.enabled then
+    pcall(function()
+        for i,v in pairs(game.Players:GetChildren()) do
+            if v ~= game.Players.LocalPlayer  then
+                local hrp = v.Character.HumanoidRootPart
+                hrp.Velocity =  Vector3.new(0.1,-0,0.34) *(0.11^00)
+                hrp.AssemblyLinearVelocity = Vector3.new(0,0,0) *(0^0)
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)    
+                hrp.AssemblyLinearVelocity = Vector3.new(hrp.Velocity.X,-0, hrp.Velocity.Z) 
+            end
+        end
+    end)
+end
+end)
+
+RS.Heartbeat:Connect(function()
+    BulletFOV()
+    CameraFOV()
+    if getgenv().futile.misc.checks.unlocked_on_death then
+        if Plr.Character.BodyEffects["K.O"].Value then Plr = nil end
+    end
+end)
+
+if getgenv().futile.misc.checks.no_ground_shots == true and Plr.Character:FindFirstChild("Humanoid") and Plr.Character:FindFirstChild("Humanoid") == Enum.HumanoidStateType.Freefall then
+    pcall(function()
+        local TargetVelv5 = Plr.Character[getgenv().futile.aiming.bullet_redirection.hitpart and getgenv().futile.aiming.bullet_redirection.hitpart]
+        TargetVelv5.Velocity = Vector3.new(TargetVelv5.Velocity.X, (TargetVelv5.Velocity.Y * 0.2), TargetVelv5.Velocity.Z)
+        TargetVelv5.AssemblyLinearVelocity = Vector3.new(TargetVelv5.Velocity.X, (TargetVelv5.Velocity.Y * 0.2), TargetVelv5.Velocity.Z)
+    end)
+end
+
+if getgenv().futile.misc.resolver.anti_aim_viewer  == true then
+    for i, v in pairs(game.Players:GetPlayers()) do
+    if v ~= Client and v.Character and v.Character:FindFirstChild("Head") and  v.Character:FindFirstChild("HumanoidRootPart")  then
+        local c = game.Workspace.CurrentCamera:WorldToViewportPoint(v.Character.PrimaryPart.Position)
+        local d = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(c.X, c.Y)).Magnitude
+        if a > d then
+            b = v
+            a = d
+        end
+    end
+end
+return b
+end
+
+while wait() do
+    if getgenv().futile.misc.autopred.enabled == true and getgenv().futile.misc.autopred.type == "Bullet" then
+        local pingvalue = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
+        local split = string.split(pingvalue,'(')
+        local ping = tonumber(split[1])
+        if ping < 120 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_120
+        elseif ping < 110 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_110
+        elseif ping < 100 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_100
+        elseif ping < 90 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_90
+        elseif ping < 80 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_80
+        elseif ping < 70 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_70
+        elseif ping < 60 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_60
+        elseif ping < 50 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_50
+        elseif ping < 40 then
+            getgenv().futile.aiming.camera_aimassist.prediction = getgenv().futile.misc.autopred.ping_40
+        end
+    elseif getgenv().futile.misc.autopred.enabled == true and getgenv().futile.misc.autopred.type == "Camera" then
+            local pingvalue = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
+            local split = string.split(pingvalue,'(')
+            local ping = tonumber(split[1])
+            if ping < 120 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_120
+            elseif ping < 110 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_110
+            elseif ping < 100 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_100
+            elseif ping < 90 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_90
+            elseif ping < 80 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_80
+            elseif ping < 70 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_70
+            elseif ping < 60 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_60
+            elseif ping < 50 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_50
+            elseif ping < 40 then
+                getgenv().futile.aiming.bullet_redirection.prediction = getgenv().futile.misc.autopred.ping_40
+        end
+    end
+end
